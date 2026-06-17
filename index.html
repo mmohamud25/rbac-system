@@ -1,0 +1,1198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>RBAC System | Role-Based Access Control</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --navy: #0B2545;
+      --navy-light: #112d54;
+      --teal: #0D9488;
+      --teal-dim: #0a7a6f;
+      --amber: #D97706;
+      --amber-dim: #b86005;
+      --surface: #0f2f5a;
+      --surface2: #163566;
+      --border: rgba(13,148,136,0.18);
+      --text: #e8eef6;
+      --text-muted: #8fa8c8;
+      --red: #ef4444;
+      --green: #22c55e;
+      --purple: #8B5CF6;
+      --font-display: 'Playfair Display', serif;
+      --font-body: 'DM Sans', sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: var(--navy);
+      color: var(--text);
+      font-family: var(--font-body);
+      min-height: 100vh;
+      display: flex;
+    }
+
+    /* SIDEBAR */
+    .sidebar {
+      width: 240px;
+      min-height: 100vh;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      top: 0; left: 0; bottom: 0;
+      z-index: 100;
+    }
+
+    .sidebar-logo {
+      padding: 24px 20px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .sidebar-logo h1 {
+      font-family: var(--font-display);
+      font-size: 1.4rem;
+      color: var(--teal);
+      letter-spacing: -0.02em;
+    }
+
+    .sidebar-logo span {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .sidebar-nav {
+      flex: 1;
+      padding: 16px 0;
+    }
+
+    .nav-section {
+      padding: 8px 16px 4px;
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      font-family: var(--font-mono);
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 20px;
+      cursor: pointer;
+      color: var(--text-muted);
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: all 0.15s;
+      border-left: 3px solid transparent;
+    }
+
+    .nav-item:hover {
+      color: var(--text);
+      background: rgba(13,148,136,0.08);
+    }
+
+    .nav-item.active {
+      color: var(--teal);
+      background: rgba(13,148,136,0.12);
+      border-left-color: var(--teal);
+    }
+
+    .nav-item .icon { font-size: 1rem; width: 18px; text-align: center; }
+
+    .sidebar-footer {
+      padding: 16px 20px;
+      border-top: 1px solid var(--border);
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+    }
+
+    /* MAIN */
+    .main {
+      margin-left: 240px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .topbar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .topbar-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .topbar-badge {
+      background: rgba(13,148,136,0.15);
+      border: 1px solid var(--teal);
+      color: var(--teal);
+      font-size: 0.7rem;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-family: var(--font-mono);
+    }
+
+    .content {
+      padding: 32px;
+      flex: 1;
+    }
+
+    /* PANELS */
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    /* STATS GRID */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px;
+    }
+
+    .stat-card .label {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-family: var(--font-mono);
+      margin-bottom: 8px;
+    }
+
+    .stat-card .value {
+      font-size: 2rem;
+      font-weight: 700;
+      font-family: var(--font-display);
+    }
+
+    .stat-card.teal .value { color: var(--teal); }
+    .stat-card.amber .value { color: var(--amber); }
+    .stat-card.purple .value { color: var(--purple); }
+    .stat-card.green .value { color: var(--green); }
+
+    /* CARDS */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .card-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    /* FORMS */
+    .form-row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 0;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      flex: 1;
+      min-width: 160px;
+    }
+
+    .form-group label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    input, select {
+      background: var(--navy);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      padding: 9px 12px;
+      font-size: 0.875rem;
+      font-family: var(--font-body);
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    input:focus, select:focus {
+      border-color: var(--teal);
+    }
+
+    select option { background: var(--navy); }
+
+    /* BUTTONS */
+    .btn {
+      padding: 9px 18px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      font-size: 0.875rem;
+      font-weight: 600;
+      font-family: var(--font-body);
+      transition: all 0.15s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-teal {
+      background: var(--teal);
+      color: #fff;
+    }
+    .btn-teal:hover { background: var(--teal-dim); }
+
+    .btn-amber {
+      background: var(--amber);
+      color: #fff;
+    }
+    .btn-amber:hover { background: var(--amber-dim); }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+    }
+    .btn-ghost:hover { color: var(--text); border-color: var(--text-muted); }
+
+    .btn-danger {
+      background: transparent;
+      color: var(--red);
+      border: 1px solid rgba(239,68,68,0.3);
+    }
+    .btn-danger:hover { background: rgba(239,68,68,0.1); }
+
+    .btn-sm { padding: 5px 12px; font-size: 0.78rem; }
+
+    /* TABLE */
+    .table-wrap { overflow-x: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.875rem;
+    }
+
+    th {
+      text-align: left;
+      padding: 10px 14px;
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      font-family: var(--font-mono);
+      border-bottom: 1px solid var(--border);
+      font-weight: 500;
+    }
+
+    td {
+      padding: 12px 14px;
+      border-bottom: 1px solid rgba(13,148,136,0.07);
+      color: var(--text);
+      vertical-align: middle;
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(13,148,136,0.04); }
+
+    /* BADGES */
+    .badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 0.7rem;
+      font-family: var(--font-mono);
+      font-weight: 500;
+    }
+
+    .badge-admin { background: rgba(217,119,6,0.15); color: var(--amber); border: 1px solid rgba(217,119,6,0.3); }
+    .badge-analyst { background: rgba(13,148,136,0.15); color: var(--teal); border: 1px solid rgba(13,148,136,0.3); }
+    .badge-viewer { background: rgba(139,92,246,0.15); color: var(--purple); border: 1px solid rgba(139,92,246,0.3); }
+    .badge-auditor { background: rgba(34,197,94,0.15); color: var(--green); border: 1px solid rgba(34,197,94,0.3); }
+    .badge-none { background: rgba(239,68,68,0.1); color: var(--red); border: 1px solid rgba(239,68,68,0.2); }
+    .badge-active { background: rgba(34,197,94,0.1); color: var(--green); border: 1px solid rgba(34,197,94,0.25); }
+    .badge-inactive { background: rgba(239,68,68,0.1); color: var(--red); border: 1px solid rgba(239,68,68,0.2); }
+
+    /* PERMISSION GRID */
+    .perm-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 10px;
+    }
+
+    .perm-item {
+      background: var(--navy);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px;
+    }
+
+    .perm-name {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+
+    .perm-desc {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+
+    /* ACCESS MATRIX */
+    .matrix-table th, .matrix-table td {
+      text-align: center;
+      padding: 10px 16px;
+    }
+
+    .matrix-table td:first-child { text-align: left; }
+
+    .check { color: var(--green); font-size: 1.1rem; }
+    .cross { color: var(--red); opacity: 0.4; font-size: 1.1rem; }
+
+    /* AUDIT LOG */
+    .log-entry {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      padding: 12px 0;
+      border-bottom: 1px solid rgba(13,148,136,0.07);
+    }
+
+    .log-entry:last-child { border-bottom: none; }
+
+    .log-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-top: 5px;
+      flex-shrink: 0;
+    }
+
+    .log-dot.create { background: var(--green); }
+    .log-dot.update { background: var(--amber); }
+    .log-dot.delete { background: var(--red); }
+    .log-dot.access { background: var(--teal); }
+
+    .log-body { flex: 1; }
+
+    .log-action {
+      font-size: 0.85rem;
+      color: var(--text);
+      margin-bottom: 2px;
+    }
+
+    .log-time {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+    }
+
+    /* SIMULATE */
+    .sim-result {
+      margin-top: 20px;
+      padding: 20px;
+      border-radius: 8px;
+      display: none;
+    }
+
+    .sim-result.allowed {
+      background: rgba(34,197,94,0.08);
+      border: 1px solid rgba(34,197,94,0.3);
+      display: block;
+    }
+
+    .sim-result.denied {
+      background: rgba(239,68,68,0.08);
+      border: 1px solid rgba(239,68,68,0.3);
+      display: block;
+    }
+
+    .sim-result .result-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .sim-result.allowed .result-title { color: var(--green); }
+    .sim-result.denied .result-title { color: var(--red); }
+
+    .sim-result .result-detail {
+      font-size: 0.83rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+      font-family: var(--font-mono);
+    }
+
+    /* EMPTY STATE */
+    .empty {
+      text-align: center;
+      padding: 40px;
+      color: var(--text-muted);
+      font-size: 0.875rem;
+    }
+
+    /* TOAST */
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: var(--surface2);
+      border: 1px solid var(--teal);
+      color: var(--text);
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      z-index: 999;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: all 0.25s;
+      pointer-events: none;
+    }
+
+    #toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* SECTION HEADING */
+    .section-heading {
+      font-family: var(--font-display);
+      font-size: 1.5rem;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+
+    .section-sub {
+      font-size: 0.83rem;
+      color: var(--text-muted);
+      margin-bottom: 24px;
+    }
+
+    .divider { height: 1px; background: var(--border); margin: 20px 0; }
+
+    .tag-list { display: flex; flex-wrap: wrap; gap: 6px; }
+
+    .tag {
+      background: rgba(13,148,136,0.1);
+      border: 1px solid rgba(13,148,136,0.25);
+      color: var(--teal);
+      font-size: 0.7rem;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-family: var(--font-mono);
+    }
+  </style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <h1>RBAC</h1>
+    <span>Access Control System</span>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section">Overview</div>
+    <div class="nav-item active" onclick="showPanel('dashboard')">
+      <span class="icon">⬡</span> Dashboard
+    </div>
+    <div class="nav-section">Identity</div>
+    <div class="nav-item" onclick="showPanel('users')">
+      <span class="icon">👤</span> Users
+    </div>
+    <div class="nav-item" onclick="showPanel('roles')">
+      <span class="icon">🛡</span> Roles
+    </div>
+    <div class="nav-item" onclick="showPanel('permissions')">
+      <span class="icon">🔑</span> Permissions
+    </div>
+    <div class="nav-section">Control</div>
+    <div class="nav-item" onclick="showPanel('matrix')">
+      <span class="icon">⊞</span> Access Matrix
+    </div>
+    <div class="nav-item" onclick="showPanel('simulate')">
+      <span class="icon">▷</span> Simulate Access
+    </div>
+    <div class="nav-section">Compliance</div>
+    <div class="nav-item" onclick="showPanel('audit')">
+      <span class="icon">📋</span> Audit Log
+    </div>
+  </nav>
+  <div class="sidebar-footer">
+    v1.0 · mmohamud.me<br>
+    IAM Portfolio Project
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-title" id="topbar-title">Dashboard</div>
+    <span class="topbar-badge">Admin Session</span>
+  </div>
+
+  <div class="content">
+
+    <!-- DASHBOARD -->
+    <div class="panel active" id="panel-dashboard">
+      <div class="section-heading">Access Control Overview</div>
+      <div class="section-sub">Real-time snapshot of your identity and access management state.</div>
+
+      <div class="stats-grid">
+        <div class="stat-card teal">
+          <div class="label">Total Users</div>
+          <div class="value" id="stat-users">0</div>
+        </div>
+        <div class="stat-card amber">
+          <div class="label">Roles Defined</div>
+          <div class="value" id="stat-roles">0</div>
+        </div>
+        <div class="stat-card purple">
+          <div class="label">Permissions</div>
+          <div class="value" id="stat-perms">0</div>
+        </div>
+        <div class="stat-card green">
+          <div class="label">Audit Events</div>
+          <div class="value" id="stat-logs">0</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Active Users</div>
+        </div>
+        <div class="table-wrap">
+          <table id="dashboard-user-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="dashboard-user-body">
+              <tr><td colspan="4" class="empty">No users yet. Go to Users to add some.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Recent Audit Events</div>
+        </div>
+        <div id="dashboard-audit-list">
+          <div class="empty">No events logged yet.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- USERS -->
+    <div class="panel" id="panel-users">
+      <div class="section-heading">User Management</div>
+      <div class="section-sub">Create users and assign them roles within the system.</div>
+
+      <div class="card">
+        <div class="card-header"><div class="card-title">Add New User</div></div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Full Name</label>
+            <input type="text" id="user-name" placeholder="Jane Smith"/>
+          </div>
+          <div class="form-group">
+            <label>Email</label>
+            <input type="email" id="user-email" placeholder="jane@company.com"/>
+          </div>
+          <div class="form-group">
+            <label>Department</label>
+            <input type="text" id="user-dept" placeholder="Security Operations"/>
+          </div>
+          <div class="form-group">
+            <label>Assign Role</label>
+            <select id="user-role">
+              <option value="">-- Select Role --</option>
+            </select>
+          </div>
+          <div class="form-group" style="justify-content:flex-end;min-width:auto;">
+            <label>&nbsp;</label>
+            <button class="btn btn-teal" onclick="addUser()">＋ Add User</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">All Users</div>
+          <button class="btn btn-ghost btn-sm" onclick="clearUsers()">Clear All</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th><th>Email</th><th>Department</th><th>Role</th><th>Status</th><th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="users-body">
+              <tr><td colspan="6" class="empty">No users yet.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ROLES -->
+    <div class="panel" id="panel-roles">
+      <div class="section-heading">Role Management</div>
+      <div class="section-sub">Define roles and attach permissions to each one.</div>
+
+      <div class="card">
+        <div class="card-header"><div class="card-title">Create Role</div></div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Role Name</label>
+            <input type="text" id="role-name" placeholder="SOC Analyst"/>
+          </div>
+          <div class="form-group">
+            <label>Description</label>
+            <input type="text" id="role-desc" placeholder="Monitors alerts and triages incidents"/>
+          </div>
+          <div class="form-group" style="justify-content:flex-end;min-width:auto;">
+            <label>&nbsp;</label>
+            <button class="btn btn-teal" onclick="addRole()">＋ Create Role</button>
+          </div>
+        </div>
+        <div class="divider"></div>
+        <div style="margin-bottom:10px;font-size:0.8rem;color:var(--text-muted);">Assign Permissions to Role:</div>
+        <div class="form-row" style="margin-bottom:14px;">
+          <div class="form-group">
+            <label>Select Role</label>
+            <select id="assign-role-select"></select>
+          </div>
+          <div class="form-group">
+            <label>Select Permission</label>
+            <select id="assign-perm-select"></select>
+          </div>
+          <div class="form-group" style="justify-content:flex-end;min-width:auto;">
+            <label>&nbsp;</label>
+            <button class="btn btn-amber" onclick="assignPermToRole()">Assign</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><div class="card-title">Defined Roles</div></div>
+        <div id="roles-list">
+          <div class="empty">No roles created yet.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PERMISSIONS -->
+    <div class="panel" id="panel-permissions">
+      <div class="section-heading">Permissions</div>
+      <div class="section-sub">Define granular permissions that can be attached to roles.</div>
+
+      <div class="card">
+        <div class="card-header"><div class="card-title">Create Permission</div></div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Permission Name</label>
+            <input type="text" id="perm-name" placeholder="alerts:read"/>
+          </div>
+          <div class="form-group">
+            <label>Resource</label>
+            <input type="text" id="perm-resource" placeholder="Alerts Dashboard"/>
+          </div>
+          <div class="form-group">
+            <label>Action</label>
+            <select id="perm-action">
+              <option value="read">Read</option>
+              <option value="write">Write</option>
+              <option value="delete">Delete</option>
+              <option value="admin">Admin</option>
+              <option value="export">Export</option>
+            </select>
+          </div>
+          <div class="form-group" style="justify-content:flex-end;min-width:auto;">
+            <label>&nbsp;</label>
+            <button class="btn btn-teal" onclick="addPermission()">＋ Add</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><div class="card-title">All Permissions</div></div>
+        <div class="perm-grid" id="perms-grid">
+          <div class="empty" style="grid-column:1/-1;">No permissions defined yet.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ACCESS MATRIX -->
+    <div class="panel" id="panel-matrix">
+      <div class="section-heading">Access Matrix</div>
+      <div class="section-sub">Visual map of which roles hold which permissions.</div>
+
+      <div class="card">
+        <div class="table-wrap">
+          <table class="matrix-table" id="matrix-table">
+            <thead><tr id="matrix-head"></tr></thead>
+            <tbody id="matrix-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- SIMULATE -->
+    <div class="panel" id="panel-simulate">
+      <div class="section-heading">Simulate Access</div>
+      <div class="section-sub">Test whether a user can perform a specific action on a resource.</div>
+
+      <div class="card">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Select User</label>
+            <select id="sim-user"></select>
+          </div>
+          <div class="form-group">
+            <label>Select Permission</label>
+            <select id="sim-perm"></select>
+          </div>
+          <div class="form-group" style="justify-content:flex-end;min-width:auto;">
+            <label>&nbsp;</label>
+            <button class="btn btn-teal" onclick="simulate()">▷ Run Check</button>
+          </div>
+        </div>
+
+        <div class="sim-result" id="sim-result">
+          <div class="result-title" id="sim-result-title"></div>
+          <div class="result-detail" id="sim-result-detail"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AUDIT LOG -->
+    <div class="panel" id="panel-audit">
+      <div class="section-heading">Audit Log</div>
+      <div class="section-sub">Every identity and access change is recorded here for compliance.</div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">All Events</div>
+          <button class="btn btn-ghost btn-sm" onclick="clearAudit()">Clear Log</button>
+        </div>
+        <div id="audit-list">
+          <div class="empty">No audit events yet.</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ─── STATE ───────────────────────────────────────────────────────────────────
+let state = JSON.parse(localStorage.getItem('rbac_state') || 'null') || {
+  users: [],
+  roles: [],
+  permissions: [],
+  audit: []
+};
+
+// Seed default data if empty
+if (state.roles.length === 0) {
+  state.roles = [
+    { id: uid(), name: 'Admin', desc: 'Full system access', permissions: [] },
+    { id: uid(), name: 'SOC Analyst', desc: 'Monitor and triage alerts', permissions: [] },
+    { id: uid(), name: 'Viewer', desc: 'Read-only access', permissions: [] },
+    { id: uid(), name: 'Auditor', desc: 'Compliance and log access', permissions: [] }
+  ];
+}
+
+if (state.permissions.length === 0) {
+  state.permissions = [
+    { id: uid(), name: 'alerts:read', resource: 'Alerts Dashboard', action: 'read' },
+    { id: uid(), name: 'alerts:write', resource: 'Alerts Dashboard', action: 'write' },
+    { id: uid(), name: 'users:admin', resource: 'User Management', action: 'admin' },
+    { id: uid(), name: 'logs:read', resource: 'Audit Logs', action: 'read' },
+    { id: uid(), name: 'reports:export', resource: 'Reports', action: 'export' },
+    { id: uid(), name: 'ioc:read', resource: 'IOC Database', action: 'read' },
+    { id: uid(), name: 'ioc:write', resource: 'IOC Database', action: 'write' },
+    { id: uid(), name: 'config:admin', resource: 'System Config', action: 'admin' }
+  ];
+  // Seed role permissions
+  const admin = state.roles.find(r => r.name === 'Admin');
+  const analyst = state.roles.find(r => r.name === 'SOC Analyst');
+  const viewer = state.roles.find(r => r.name === 'Viewer');
+  const auditor = state.roles.find(r => r.name === 'Auditor');
+  if (admin) admin.permissions = state.permissions.map(p => p.id);
+  if (analyst) analyst.permissions = state.permissions.filter(p => ['alerts:read','alerts:write','ioc:read','ioc:write'].includes(p.name)).map(p => p.id);
+  if (viewer) viewer.permissions = state.permissions.filter(p => p.action === 'read').map(p => p.id);
+  if (auditor) auditor.permissions = state.permissions.filter(p => ['logs:read','reports:export','alerts:read'].includes(p.name)).map(p => p.id);
+}
+
+if (state.users.length === 0) {
+  const analystRole = state.roles.find(r => r.name === 'SOC Analyst');
+  const viewerRole = state.roles.find(r => r.name === 'Viewer');
+  state.users = [
+    { id: uid(), name: 'Mohamed Mohamud', email: 'mohamedmohammud@gmail.com', dept: 'Security Operations', role: analystRole?.id || '', status: 'active' },
+    { id: uid(), name: 'Jane Doe', email: 'jane.doe@company.com', dept: 'IT', role: viewerRole?.id || '', status: 'active' }
+  ];
+  log('create', 'System initialized with default users, roles, and permissions');
+}
+
+save();
+
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+function save() { localStorage.setItem('rbac_state', JSON.stringify(state)); }
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+function log(type, action) {
+  state.audit.unshift({ id: uid(), type, action, time: new Date().toISOString() });
+  if (state.audit.length > 100) state.audit.pop();
+  save();
+}
+
+// ─── NAVIGATION ──────────────────────────────────────────────────────────────
+function showPanel(id) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('panel-' + id).classList.add('active');
+  const titles = { dashboard:'Dashboard', users:'User Management', roles:'Roles', permissions:'Permissions', matrix:'Access Matrix', simulate:'Simulate Access', audit:'Audit Log' };
+  document.getElementById('topbar-title').textContent = titles[id] || id;
+  event.currentTarget.classList.add('active');
+  render();
+}
+
+// ─── RENDER ──────────────────────────────────────────────────────────────────
+function render() {
+  renderStats();
+  renderDashboard();
+  renderUsers();
+  renderRoles();
+  renderPermissions();
+  renderMatrix();
+  renderSimulate();
+  renderAudit();
+}
+
+function getRoleName(roleId) {
+  const r = state.roles.find(r => r.id === roleId);
+  return r ? r.name : 'None';
+}
+
+function roleBadge(name) {
+  const map = { Admin:'badge-admin', 'SOC Analyst':'badge-analyst', Viewer:'badge-viewer', Auditor:'badge-auditor' };
+  const cls = map[name] || 'badge-none';
+  return `<span class="badge ${cls}">${name || 'No Role'}</span>`;
+}
+
+function renderStats() {
+  document.getElementById('stat-users').textContent = state.users.length;
+  document.getElementById('stat-roles').textContent = state.roles.length;
+  document.getElementById('stat-perms').textContent = state.permissions.length;
+  document.getElementById('stat-logs').textContent = state.audit.length;
+}
+
+function renderDashboard() {
+  const tbody = document.getElementById('dashboard-user-body');
+  if (!state.users.length) { tbody.innerHTML = '<tr><td colspan="4" class="empty">No users yet.</td></tr>'; }
+  else {
+    tbody.innerHTML = state.users.map(u => `
+      <tr>
+        <td>${u.name}</td>
+        <td style="color:var(--text-muted);font-family:var(--font-mono);font-size:0.8rem">${u.email}</td>
+        <td>${roleBadge(getRoleName(u.role))}</td>
+        <td><span class="badge badge-${u.status}">${u.status}</span></td>
+      </tr>`).join('');
+  }
+  const auditDiv = document.getElementById('dashboard-audit-list');
+  const recent = state.audit.slice(0, 5);
+  if (!recent.length) { auditDiv.innerHTML = '<div class="empty">No events.</div>'; return; }
+  auditDiv.innerHTML = recent.map(e => `
+    <div class="log-entry">
+      <div class="log-dot ${e.type}"></div>
+      <div class="log-body">
+        <div class="log-action">${e.action}</div>
+        <div class="log-time">${new Date(e.time).toLocaleString()}</div>
+      </div>
+    </div>`).join('');
+}
+
+function renderUsers() {
+  const tbody = document.getElementById('users-body');
+  const roleSelect = document.getElementById('user-role');
+  roleSelect.innerHTML = '<option value="">-- Select Role --</option>' + state.roles.map(r => `<option value="${r.id}">${r.name}</option>`).join('');
+  if (!state.users.length) { tbody.innerHTML = '<tr><td colspan="6" class="empty">No users yet.</td></tr>'; return; }
+  tbody.innerHTML = state.users.map(u => `
+    <tr>
+      <td>${u.name}</td>
+      <td style="font-family:var(--font-mono);font-size:0.78rem;color:var(--text-muted)">${u.email}</td>
+      <td style="color:var(--text-muted)">${u.dept}</td>
+      <td>${roleBadge(getRoleName(u.role))}</td>
+      <td><span class="badge badge-${u.status}">${u.status}</span></td>
+      <td style="display:flex;gap:6px;">
+        <button class="btn btn-ghost btn-sm" onclick="toggleUser('${u.id}')">${u.status==='active'?'Deactivate':'Activate'}</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteUser('${u.id}')">Remove</button>
+      </td>
+    </tr>`).join('');
+}
+
+function renderRoles() {
+  const rList = document.getElementById('roles-list');
+  const rSelect = document.getElementById('assign-role-select');
+  const pSelect = document.getElementById('assign-perm-select');
+  rSelect.innerHTML = state.roles.map(r => `<option value="${r.id}">${r.name}</option>`).join('');
+  pSelect.innerHTML = state.permissions.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+  if (!state.roles.length) { rList.innerHTML = '<div class="empty">No roles.</div>'; return; }
+  rList.innerHTML = state.roles.map(r => {
+    const perms = state.permissions.filter(p => r.permissions.includes(p.id));
+    return `
+      <div style="padding:16px 0;border-bottom:1px solid var(--border);">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <div>
+            <span style="font-weight:600;font-size:0.9rem;">${r.name}</span>
+            <span style="font-size:0.78rem;color:var(--text-muted);margin-left:10px;">${r.desc}</span>
+          </div>
+          <button class="btn btn-danger btn-sm" onclick="deleteRole('${r.id}')">Remove</button>
+        </div>
+        <div class="tag-list">
+          ${perms.length ? perms.map(p => `<span class="tag">${p.name}</span>`).join('') : '<span style="font-size:0.75rem;color:var(--text-muted);">No permissions assigned</span>'}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function renderPermissions() {
+  const grid = document.getElementById('perms-grid');
+  if (!state.permissions.length) { grid.innerHTML = '<div class="empty" style="grid-column:1/-1;">No permissions.</div>'; return; }
+  const actionColor = { read:'var(--teal)', write:'var(--amber)', delete:'var(--red)', admin:'var(--purple)', export:'var(--green)' };
+  grid.innerHTML = state.permissions.map(p => `
+    <div class="perm-item">
+      <div class="perm-name">${p.name}</div>
+      <div class="perm-desc">${p.resource}</div>
+      <div style="margin-top:8px;display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-size:0.68rem;font-family:var(--font-mono);color:${actionColor[p.action]||'var(--teal)'};">${p.action.toUpperCase()}</span>
+        <button style="background:none;border:none;color:var(--red);cursor:pointer;font-size:0.75rem;" onclick="deletePermission('${p.id}')">✕</button>
+      </div>
+    </div>`).join('');
+}
+
+function renderMatrix() {
+  const head = document.getElementById('matrix-head');
+  const body = document.getElementById('matrix-body');
+  const perms = state.permissions;
+  const roles = state.roles;
+  if (!perms.length || !roles.length) {
+    head.innerHTML = '<th>Resource</th>';
+    body.innerHTML = '<tr><td class="empty">Add roles and permissions to see the matrix.</td></tr>';
+    return;
+  }
+  head.innerHTML = '<th>Role</th>' + perms.map(p => `<th style="font-size:0.65rem;">${p.name}</th>`).join('');
+  body.innerHTML = roles.map(r => `
+    <tr>
+      <td>${roleBadge(r.name)}</td>
+      ${perms.map(p => `<td>${r.permissions.includes(p.id) ? '<span class="check">✓</span>' : '<span class="cross">✗</span>'}</td>`).join('')}
+    </tr>`).join('');
+}
+
+function renderSimulate() {
+  const uSelect = document.getElementById('sim-user');
+  const pSelect = document.getElementById('sim-perm');
+  uSelect.innerHTML = state.users.length
+    ? state.users.map(u => `<option value="${u.id}">${u.name}</option>`).join('')
+    : '<option>No users</option>';
+  pSelect.innerHTML = state.permissions.length
+    ? state.permissions.map(p => `<option value="${p.id}">${p.name}</option>`).join('')
+    : '<option>No permissions</option>';
+}
+
+function renderAudit() {
+  const list = document.getElementById('audit-list');
+  if (!state.audit.length) { list.innerHTML = '<div class="empty">No audit events.</div>'; return; }
+  list.innerHTML = state.audit.map(e => `
+    <div class="log-entry">
+      <div class="log-dot ${e.type}"></div>
+      <div class="log-body">
+        <div class="log-action">${e.action}</div>
+        <div class="log-time">${new Date(e.time).toLocaleString()}</div>
+      </div>
+    </div>`).join('');
+}
+
+// ─── ACTIONS ──────────────────────────────────────────────────────────────────
+function addUser() {
+  const name = document.getElementById('user-name').value.trim();
+  const email = document.getElementById('user-email').value.trim();
+  const dept = document.getElementById('user-dept').value.trim();
+  const role = document.getElementById('user-role').value;
+  if (!name || !email) { toast('Name and email are required.'); return; }
+  const u = { id: uid(), name, email, dept, role, status: 'active' };
+  state.users.push(u);
+  log('create', `User created: ${name} (${email}) → role: ${getRoleName(role)}`);
+  save(); render(); toast(`User "${name}" added.`);
+  document.getElementById('user-name').value = '';
+  document.getElementById('user-email').value = '';
+  document.getElementById('user-dept').value = '';
+}
+
+function deleteUser(id) {
+  const u = state.users.find(u => u.id === id);
+  state.users = state.users.filter(u => u.id !== id);
+  log('delete', `User removed: ${u?.name}`);
+  save(); render(); toast('User removed.');
+}
+
+function toggleUser(id) {
+  const u = state.users.find(u => u.id === id);
+  if (!u) return;
+  u.status = u.status === 'active' ? 'inactive' : 'active';
+  log('update', `User ${u.name} status changed to ${u.status}`);
+  save(); render(); toast(`User ${u.status === 'active' ? 'activated' : 'deactivated'}.`);
+}
+
+function clearUsers() {
+  if (!confirm('Remove all users?')) return;
+  state.users = [];
+  log('delete', 'All users cleared');
+  save(); render(); toast('All users removed.');
+}
+
+function addRole() {
+  const name = document.getElementById('role-name').value.trim();
+  const desc = document.getElementById('role-desc').value.trim();
+  if (!name) { toast('Role name required.'); return; }
+  state.roles.push({ id: uid(), name, desc, permissions: [] });
+  log('create', `Role created: ${name}`);
+  save(); render(); toast(`Role "${name}" created.`);
+  document.getElementById('role-name').value = '';
+  document.getElementById('role-desc').value = '';
+}
+
+function deleteRole(id) {
+  const r = state.roles.find(r => r.id === id);
+  state.roles = state.roles.filter(r => r.id !== id);
+  log('delete', `Role removed: ${r?.name}`);
+  save(); render(); toast('Role removed.');
+}
+
+function assignPermToRole() {
+  const rId = document.getElementById('assign-role-select').value;
+  const pId = document.getElementById('assign-perm-select').value;
+  const role = state.roles.find(r => r.id === rId);
+  const perm = state.permissions.find(p => p.id === pId);
+  if (!role || !perm) { toast('Select a valid role and permission.'); return; }
+  if (role.permissions.includes(pId)) { toast('Permission already assigned.'); return; }
+  role.permissions.push(pId);
+  log('update', `Permission "${perm.name}" assigned to role "${role.name}"`);
+  save(); render(); toast(`"${perm.name}" assigned to "${role.name}".`);
+}
+
+function addPermission() {
+  const name = document.getElementById('perm-name').value.trim();
+  const resource = document.getElementById('perm-resource').value.trim();
+  const action = document.getElementById('perm-action').value;
+  if (!name || !resource) { toast('Name and resource are required.'); return; }
+  state.permissions.push({ id: uid(), name, resource, action });
+  log('create', `Permission created: ${name} (${action} on ${resource})`);
+  save(); render(); toast(`Permission "${name}" created.`);
+  document.getElementById('perm-name').value = '';
+  document.getElementById('perm-resource').value = '';
+}
+
+function deletePermission(id) {
+  const p = state.permissions.find(p => p.id === id);
+  state.permissions = state.permissions.filter(p => p.id !== id);
+  state.roles.forEach(r => { r.permissions = r.permissions.filter(pid => pid !== id); });
+  log('delete', `Permission removed: ${p?.name}`);
+  save(); render(); toast('Permission removed.');
+}
+
+function simulate() {
+  const uId = document.getElementById('sim-user').value;
+  const pId = document.getElementById('sim-perm').value;
+  const user = state.users.find(u => u.id === uId);
+  const perm = state.permissions.find(p => p.id === pId);
+  const result = document.getElementById('sim-result');
+  const title = document.getElementById('sim-result-title');
+  const detail = document.getElementById('sim-result-detail');
+  if (!user || !perm) { toast('Select user and permission.'); return; }
+  const role = state.roles.find(r => r.id === user.role);
+  const allowed = user.status === 'active' && role && role.permissions.includes(pId);
+  result.className = 'sim-result ' + (allowed ? 'allowed' : 'denied');
+  title.textContent = allowed ? '✓ ACCESS GRANTED' : '✗ ACCESS DENIED';
+  detail.innerHTML = `
+User:       ${user.name} (${user.email})
+Status:     ${user.status.toUpperCase()}
+Role:       ${role ? role.name : 'No role assigned'}
+Permission: ${perm.name}
+Resource:   ${perm.resource}
+Action:     ${perm.action.toUpperCase()}
+Result:     ${allowed ? 'PERMITTED' : user.status !== 'active' ? 'DENIED — account inactive' : !role ? 'DENIED — no role assigned' : 'DENIED — permission not in role'}`;
+  log('access', `Access check: ${user.name} → ${perm.name} → ${allowed ? 'GRANTED' : 'DENIED'}`);
+  save(); renderAudit(); renderStats();
+}
+
+function clearAudit() {
+  if (!confirm('Clear all audit logs?')) return;
+  state.audit = [];
+  save(); render(); toast('Audit log cleared.');
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+render();
+</script>
+
+<script src="https://analytics.kulaninstitute.org/tracker.js" data-site="rbac-system" data-group="kulan-group"></script>
+</body>
+</html>
